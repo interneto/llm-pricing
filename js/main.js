@@ -1,12 +1,7 @@
-// Importaciones de módulos CDN estables
 import { num, num0 } from "https://cdn.jsdelivr.net/npm/@gramex/ui@0.3/dist/format.js";
-import { marked } from "https://cdn.jsdelivr.net/npm/marked@12/+esm";
 import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/+esm";
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
 import { default as fuzzysort } from "https://cdn.jsdelivr.net/npm/fuzzysort@3/+esm";
-
-const content = await fetch("README.md").then((r) => r.text());
-document.querySelector("#README").innerHTML = marked.parse(content);
 
 let quality = new URLSearchParams(window.location.search).get("quality") || "overall";
 document.querySelector("#quality").textContent = quality.charAt(0).toUpperCase() + quality.slice(1);
@@ -25,14 +20,8 @@ const $date = document.querySelector("#date");
 $date.setAttribute("max", dates.length - 1);
 $date.value = dates.length - 1;
 
-const xScale = d3
-  .scaleLog()
-  .domain(d3.extent(models, (d) => d.cost))
-  .range([0, 1000]);
-const yScale = d3
-  .scaleLinear()
-  .domain(d3.extent(models, (d) => d.elo))
-  .range([500, 0]);
+const xScale = d3.scaleLog().domain(d3.extent(models, (d) => d.cost)).range([0, 1000]);
+const yScale = d3.scaleLinear().domain(d3.extent(models, (d) => d.elo)).range([500, 0]);
 
 const eloAnnotations = [
   { elo: 1000, label: "🧒 Middle schooler" },
@@ -47,15 +36,22 @@ const eloAnnotations = [
 
 const updateOptimalStatus = (filteredModels) => {
   filteredModels.forEach((model) => {
-    model.optimal = filteredModels.every((other) => other === model || other.elo < model.elo || other.cost > model.cost)
+    model.optimal = filteredModels.every(
+      (other) => other === model || other.elo < model.elo || other.cost > model.cost
+    )
       ? "best"
-      : filteredModels.every((other) => other === model || other.elo >= model.elo || other.cost <= model.cost)
+      : filteredModels.every(
+          (other) => other === model || other.elo >= model.elo || other.cost <= model.cost
+        )
       ? "worst"
       : "";
   });
 };
 
 const renderPlot = (filteredModels) => {
+  const highlighted = (d) => scrollyHighlights.has(d.model);
+  const dimmed = (d) => scrollyActive && scrollyHighlights.size > 0 && !highlighted(d);
+
   const plot = Plot.plot({
     marginLeft: 50,
     x: { type: "log", grid: true, domain: xScale.domain() },
@@ -84,17 +80,15 @@ const renderPlot = (filteredModels) => {
         y: "elo",
         r: 8,
         fill: (d) => {
-          if (scrollyHighlights.has(d.model)) return "#06b6d4";
+          if (highlighted(d)) return "#06b6d4";
           if (d.optimal === "best") return "lime";
           if (d.optimal === "worst") return "red";
           return "rgba(var(--bs-body-color-rgb), 0.1)";
         },
-        fillOpacity: (d) =>
-          scrollyActive && scrollyHighlights.size > 0 && !scrollyHighlights.has(d.model) ? 0.3 : 1,
-        stroke: (d) => (scrollyHighlights.has(d.model) ? "#fff" : "black"),
-        strokeWidth: (d) => (scrollyHighlights.has(d.model) ? 1.5 : 0.5),
-        strokeOpacity: (d) =>
-          scrollyActive && scrollyHighlights.size > 0 && !scrollyHighlights.has(d.model) ? 0.2 : 1,
+        fillOpacity: (d) => (dimmed(d) ? 0.3 : 1),
+        stroke: (d) => (highlighted(d) ? "#fff" : "black"),
+        strokeWidth: (d) => (highlighted(d) ? 1.5 : 0.5),
+        strokeOpacity: (d) => (dimmed(d) ? 0.2 : 1),
         channels: { model: "model" },
         tip: {
           fill: "var(--bs-body-bg)",
@@ -109,13 +103,12 @@ const renderPlot = (filteredModels) => {
         },
       }),
       Plot.text(
-        filteredModels.filter((d) => d.optimal || scrollyHighlights.has(d.model)),
+        filteredModels.filter((d) => d.optimal || highlighted(d)),
         {
           x: "cost",
           y: "elo",
           text: (d) => d.model,
-          fillOpacity: (d) =>
-            scrollyActive && scrollyHighlights.size > 0 && !scrollyHighlights.has(d.model) ? 0.25 : 1,
+          fillOpacity: (d) => (dimmed(d) ? 0.25 : 1),
           dy: -10,
           lineAnchor: "bottom",
         }
@@ -132,15 +125,13 @@ const renderPlot = (filteredModels) => {
 
 const update = () => {
   const date = dates[$date.value];
-  document.querySelector("#date-label").textContent = d3.timeFormat("%b %Y")(d3.timeParse("%Y-%m")(date));
+  document.querySelector("#date-label").textContent =
+    d3.timeFormat("%b %Y")(d3.timeParse("%Y-%m")(date));
 
   const search = document.querySelector("#model").value.trim();
-  const results = fuzzysort.go(
-    search,
-    models.map((m) => m.model),
-    { threshold: -20 }
+  const matches = new Set(
+    fuzzysort.go(search, models.map((m) => m.model), { threshold: -20 }).map((r) => r.target)
   );
-  const matches = new Set(results.map((r) => r.target));
 
   const filteredModels = models.filter(
     (d) => d.launch <= date && (d.end ? d.end > date : true) && (search ? matches.has(d.model) : true)
@@ -153,19 +144,19 @@ $date.addEventListener("input", update);
 document.querySelector("#model").addEventListener("input", update);
 update();
 
-// ─── 4. SCROLLYTELLING ───────────────────────────────────────────────────
+// ── Scrollytelling ──────────────────────────────────────────────────────────
 
 const narrative = await fetch("data/narrative.json").then((r) => r.json());
 const scrollySection = document.querySelector("#scrolly-section");
 const cardEls = [];
 
-// Construcción dinámica de las tarjetas del timeline
 narrative.cards.forEach((card, i) => {
-  const linksHtml = card.links && card.links.length
-    ? `<div class="card-links">${card.links
-        .map((l) => `<a href="${l.url}" target="_blank" rel="noopener">${l.text}</a>`)
-        .join("")}</div>`
-    : "";
+  const linksHtml =
+    card.links?.length
+      ? `<div class="card-links">${card.links
+          .map((l) => `<a href="${l.url}" target="_blank" rel="noopener">${l.text}</a>`)
+          .join("")}</div>`
+      : "";
 
   const cardEl = document.createElement("div");
   cardEl.className = `scrolly-card pos-${card.position}${card.vertical === "top" ? " vert-top" : ""}`;
@@ -222,15 +213,12 @@ const animateToMonth = (targetIdx) => {
   if (startIdx === targetIdx) return;
   const duration = 700;
   const startTime = performance.now();
-  
+
   const tick = (now) => {
     const t = Math.min((now - startTime) / duration, 1);
     const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     const cur = Math.round(startIdx + (targetIdx - startIdx) * eased);
-    if (+$date.value !== cur) { 
-        $date.value = cur; 
-        update(); 
-    }
+    if (+$date.value !== cur) { $date.value = cur; update(); }
     if (t < 1) monthAnimFrame = requestAnimationFrame(tick);
   };
   monthAnimFrame = requestAnimationFrame(tick);
