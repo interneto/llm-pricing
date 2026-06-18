@@ -1,24 +1,22 @@
+// Importaciones de módulos CDN estables
 import { num, num0 } from "https://cdn.jsdelivr.net/npm/@gramex/ui@0.3/dist/format.js";
 import { marked } from "https://cdn.jsdelivr.net/npm/marked@12/+esm";
 import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/+esm";
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
 import { default as fuzzysort } from "https://cdn.jsdelivr.net/npm/fuzzysort@3/+esm";
 
-// Load and display README content
 const content = await fetch("README.md").then((r) => r.text());
 document.querySelector("#README").innerHTML = marked.parse(content);
 
 let quality = new URLSearchParams(window.location.search).get("quality") || "overall";
 document.querySelector("#quality").textContent = quality.charAt(0).toUpperCase() + quality.slice(1);
 
-// Load and process model data
-const data = await d3.csv("elo.csv");
+const data = await d3.csv("data/elo.csv");
 const hasEloScore = (row, field) => row[field]?.trim() !== "" && Number.isFinite(+row[field]);
 const models = data
   .filter((d) => Number.isFinite(+d.cpmi) && +d.cpmi > 0 && hasEloScore(d, quality))
   .map((d) => ({ ...d, cost: +d.cpmi, elo: +d[quality] }));
 
-// Scrollytelling state
 let scrollyHighlights = new Set();
 let scrollyActive = false;
 
@@ -36,7 +34,6 @@ const yScale = d3
   .domain(d3.extent(models, (d) => d.elo))
   .range([500, 0]);
 
-// LMArena Elo mapped to academic milestones (Framework A)
 const eloAnnotations = [
   { elo: 1000, label: "🧒 Middle schooler" },
   { elo: 1100, label: "🎒 HS freshman" },
@@ -129,9 +126,8 @@ const renderPlot = (filteredModels) => {
   });
   document.querySelector("#llm-cost").replaceChildren(plot);
 
-  // Add nodes to models for search functionality
   const circles = document.querySelectorAll("#llm-cost circle");
-  models.forEach((model, i) => (model.node = circles[i]));
+  models.forEach((model, i) => { if (circles[i]) model.node = circles[i]; });
 };
 
 const update = () => {
@@ -157,16 +153,15 @@ $date.addEventListener("input", update);
 document.querySelector("#model").addEventListener("input", update);
 update();
 
-// ─── Scrollytelling ────────────────────────────────────────────────────────
+// ─── 4. SCROLLYTELLING ───────────────────────────────────────────────────
 
-const narrative = await fetch("narrative.json").then((r) => r.json());
-
-// Build scrolly steps — each contains a sticky glassmorphism card
+const narrative = await fetch("data/narrative.json").then((r) => r.json());
 const scrollySection = document.querySelector("#scrolly-section");
 const cardEls = [];
 
+// Construcción dinámica de las tarjetas del timeline
 narrative.cards.forEach((card, i) => {
-  const linksHtml = card.links.length
+  const linksHtml = card.links && card.links.length
     ? `<div class="card-links">${card.links
         .map((l) => `<a href="${l.url}" target="_blank" rel="noopener">${l.text}</a>`)
         .join("")}</div>`
@@ -190,15 +185,29 @@ narrative.cards.forEach((card, i) => {
   }
 });
 
-// Trailing spacer — large enough for the last card to scroll well past the top
 const trailing = document.createElement("div");
 trailing.style.height = "140vh";
 scrollySection.appendChild(trailing);
 
-// Sentinel at the start of the trailing space: when it enters the viewport,
-// the last card has already scrolled above the top — restore the chart fully
 const endSentinel = document.createElement("div");
 trailing.prepend(endSentinel);
+
+const activateCard = (cardData) => {
+  scrollyActive = true;
+  scrollyHighlights = new Set(cardData.highlight);
+  if (cardData.date) {
+    const targetIdx = dates.indexOf(cardData.date);
+    if (targetIdx !== -1) animateToMonth(targetIdx);
+  } else {
+    update();
+  }
+};
+
+const deactivateScrolly = () => {
+  scrollyActive = false;
+  scrollyHighlights.clear();
+  update();
+};
 
 const endObserver = new IntersectionObserver(
   ([entry]) => { if (entry.isIntersecting) deactivateScrolly(); },
@@ -206,7 +215,6 @@ const endObserver = new IntersectionObserver(
 );
 endObserver.observe(endSentinel);
 
-// Smooth month animation
 let monthAnimFrame = null;
 const animateToMonth = (targetIdx) => {
   if (monthAnimFrame) cancelAnimationFrame(monthAnimFrame);
@@ -214,55 +222,16 @@ const animateToMonth = (targetIdx) => {
   if (startIdx === targetIdx) return;
   const duration = 700;
   const startTime = performance.now();
+  
   const tick = (now) => {
     const t = Math.min((now - startTime) / duration, 1);
     const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     const cur = Math.round(startIdx + (targetIdx - startIdx) * eased);
-    if (+$date.value !== cur) { $date.value = cur; update(); }
+    if (+$date.value !== cur) { 
+        $date.value = cur; 
+        update(); 
+    }
     if (t < 1) monthAnimFrame = requestAnimationFrame(tick);
   };
   monthAnimFrame = requestAnimationFrame(tick);
 };
-
-const activateCard = (cardData) => {
-  scrollyActive = true;
-  scrollyHighlights = new Set(cardData.highlight);
-  if (cardData.month) animateToMonth(dates.indexOf(cardData.month));
-  else update();
-};
-
-const deactivateScrolly = () => {
-  if (!scrollyActive && scrollyHighlights.size === 0) return;
-  scrollyActive = false;
-  scrollyHighlights = new Set();
-  update();
-};
-
-// Fade cards in/out as they enter/leave viewport
-const cardObserver = new IntersectionObserver(
-  (entries) => entries.forEach((e) => e.target.classList.toggle("is-active", e.isIntersecting)),
-  { threshold: 0.15 }
-);
-cardEls.forEach((el) => cardObserver.observe(el));
-
-// Update chart state when a step becomes active
-const stepObserver = new IntersectionObserver(
-  (entries) => {
-    for (const entry of entries) {
-      if (entry.isIntersecting) activateCard(narrative.cards[+entry.target.dataset.step]);
-    }
-  },
-  { threshold: 0.35, rootMargin: "-10% 0px -10% 0px" }
-);
-document.querySelectorAll(".scrolly-step").forEach((el) => stepObserver.observe(el));
-
-// Deactivate when scrolling back above the section (scroll-up case)
-let sectionEverEntered = false;
-const sectionObserver = new IntersectionObserver(
-  ([entry]) => {
-    if (entry.isIntersecting) { sectionEverEntered = true; }
-    else if (sectionEverEntered) { deactivateScrolly(); }
-  },
-  { threshold: 0 }
-);
-sectionObserver.observe(scrollySection);

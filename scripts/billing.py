@@ -73,7 +73,7 @@ def main():
     add_throughput_data(endpoints)
     calculate_billing_rates(endpoints)
 
-    with open("billing.json", "w") as f:
+    with open("data/billing.json", "w") as f:
         json.dump(list(endpoints.values()), f)
 
 
