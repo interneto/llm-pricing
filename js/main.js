@@ -4,7 +4,9 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
 import { default as fuzzysort } from "https://cdn.jsdelivr.net/npm/fuzzysort@3/+esm";
 
 let quality = new URLSearchParams(window.location.search).get("quality") || "overall";
-document.querySelector("#quality").textContent = quality.charAt(0).toUpperCase() + quality.slice(1);
+const $quality = document.querySelector("#quality");
+$quality.value = quality;
+$quality.addEventListener("change", () => { location.search = "?quality=" + $quality.value; });
 
 const data = await d3.csv("data/elo.csv");
 const hasEloScore = (row, field) => row[field]?.trim() !== "" && Number.isFinite(+row[field]);
@@ -61,7 +63,7 @@ const renderPlot = (filteredModels) => {
     marks: [
       Plot.ruleY(eloAnnotations, {
         y: "elo",
-        stroke: "#888",
+        stroke: "var(--muted)",
         strokeOpacity: 0.3,
         strokeDasharray: "4,4",
       }),
@@ -71,7 +73,7 @@ const renderPlot = (filteredModels) => {
         frameAnchor: "right",
         textAnchor: "end",
         fontSize: 10,
-        fill: "#888",
+        fill: "var(--muted)",
         dx: -4,
         dy: -5,
       }),
@@ -80,18 +82,22 @@ const renderPlot = (filteredModels) => {
         y: "elo",
         r: 8,
         fill: (d) => {
-          if (highlighted(d)) return "#06b6d4";
+          if (highlighted(d)) return "var(--accent)";
           if (d.optimal === "best") return "lime";
           if (d.optimal === "worst") return "red";
-          return "rgba(var(--bs-body-color-rgb), 0.1)";
+          return "rgba(var(--border-rgb), 0.35)";
         },
         fillOpacity: (d) => (dimmed(d) ? 0.3 : 1),
-        stroke: (d) => (highlighted(d) ? "#fff" : "black"),
+        stroke: (d) => {
+          if (highlighted(d)) return "var(--bg)";
+          if (d.optimal) return "var(--fg)";
+          return "rgba(var(--border-rgb), 0.35)";
+        },
         strokeWidth: (d) => (highlighted(d) ? 1.5 : 0.5),
         strokeOpacity: (d) => (dimmed(d) ? 0.2 : 1),
         channels: { model: "model" },
         tip: {
-          fill: "var(--bs-body-bg)",
+          fill: "var(--bg)",
           format: {
             fill: false,
             fillOpacity: false,

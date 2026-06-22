@@ -7,44 +7,34 @@
   <title>LLM Pricing</title>
   <link rel="icon" type="image/svg+xml"
     href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTUiIGZpbGw9IiMyNTYzZWIiLz48cGF0aCBmaWxsPSIjZmZmIiBkPSJtMTYgNyAyIDcgNyAyLTcgMi0yIDctMi03LTctMiA3LTJaIi8+PC9zdmc+" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" crossorigin="anonymous">
   <link rel="stylesheet" href="css/styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap-dark-theme@1.2/dist/dark-theme.js" type="module"></script>
   <script src="js/main.js" type="module"></script>
 </head>
 
 <body>
-  <div class="container">
-    <h1 class="display-1 my-4 text-center">LLM Pricing</h1>
-
-    <div id="chart-sticky">
-      <div class="row align-items-center mt-4">
-        <div class="col-lg-4 col-xl-3 d-flex">
-          <div class="dropdown mb-3">
-            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="quality"
-              data-bs-toggle="dropdown" aria-expanded="false">Overall</button>
-            <ul class="dropdown-menu">
-              <li><a href="?quality=overall" class="dropdown-item">Overall</a></li>
-              <li><a href="?quality=coding" class="dropdown-item">Coding</a></li>
-              <li><a href="?quality=hard" class="dropdown-item">Hard</a></li>
-            </ul>
-          </div>
-          <input id="model" class="form-control mb-3 ms-2" placeholder="Filter models">
-        </div>
-        <div class="col-lg-8 col-xl-9 d-flex">
-          <label class="form-label text-nowrap me-3" id="date-label" for="date">Month</label>
-          <input type="range" id="date" class="form-range mb-3 me-3 flex-grow-1" min="0" max="100" step="1" value="100">
-          <div class="text-end text-nowrap mb-3">🟢 Best models 🔴 Worst models</div>
-        </div>
+  <div id="app">
+    <div id="controls">
+      <div id="controls-top">
+        <select id="quality">
+          <option value="overall">Overall</option>
+          <option value="coding">Coding</option>
+          <option value="hard">Hard</option>
+        </select>
+        <input id="model" placeholder="Filter">
+        <span id="brand">LLM Pricing</span>
       </div>
-      <div id="chart-area">
-        <div id="llm-cost" class="img-fluid"></div>
+      <div id="controls-slider">
+        <label id="date-label" for="date">Month</label>
+        <input type="range" id="date" min="0" max="100" step="1" value="100">
+        <span class="legend">🟢 Best &nbsp; 🔴 Worst</span>
       </div>
     </div>
-
-    <div id="scrolly-section"></div>
+    <div id="chart-area">
+      <div id="llm-cost"></div>
+    </div>
   </div>
+
+  <div id="scrolly-section"></div>
 </body>
 
 </html>
