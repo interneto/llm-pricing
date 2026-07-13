@@ -24,7 +24,7 @@ let scrollyHighlights = new Set();
 let scrollyActive = false;
 
 const $chartArea = document.querySelector("#chart-area");
-const MIN_CHART_WIDTH = 500;
+const MIN_CHART_WIDTH = 560;
 
 const dates = Array.from(new Set(models.map((d) => d.launch))).sort();
 const $date = document.querySelector("#date");
@@ -64,7 +64,7 @@ const renderPlot = (filteredModels) => {
   const dimmed = (d) => scrollyActive && scrollyHighlights.size > 0 && !highlighted(d);
 
   const w = Math.max($chartArea.clientWidth, MIN_CHART_WIDTH);
-  const h = Math.max($chartArea.clientHeight, 400);
+  const h = Math.min(Math.max($chartArea.clientHeight, 400), Math.round(w * 0.62));
 
   const plot = Plot.plot({
     marginLeft: 50,

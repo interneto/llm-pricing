@@ -222,6 +222,7 @@ select { cursor: pointer; }
 #chart-area {
   flex: 1;
   min-height: 400px;
+  margin-top: 10px;
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -234,11 +235,13 @@ select { cursor: pointer; }
 
 @media (max-width: 540px) {
   #chart-area {
+    overflow-x: scroll; /* force scrollbar track visible on iOS */
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
   }
-  #chart-area::-webkit-scrollbar { height: 4px; }
-  #chart-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  #chart-area::-webkit-scrollbar { height: 5px; display: block; }
+  #chart-area::-webkit-scrollbar-track { background: transparent; }
+  #chart-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 }
 
 #llm-cost > svg {
