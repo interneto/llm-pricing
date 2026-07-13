@@ -8,6 +8,12 @@ const $quality = document.querySelector("#quality");
 $quality.value = quality;
 $quality.addEventListener("change", () => { location.search = "?quality=" + $quality.value; });
 
+const $infoBtn = document.querySelector("#info-btn");
+const $infoPopover = document.querySelector("#info-popover");
+$infoBtn.addEventListener("click", (e) => { e.stopPropagation(); $infoPopover.hidden = !$infoPopover.hidden; });
+document.addEventListener("click", () => { $infoPopover.hidden = true; });
+$infoPopover.addEventListener("click", (e) => e.stopPropagation());
+
 const data = await d3.csv("data/elo.csv");
 const hasEloScore = (row, field) => row[field]?.trim() !== "" && Number.isFinite(+row[field]);
 const models = data

@@ -30,7 +30,7 @@
 
 html, body {
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
   background: var(--bg);
   color: var(--fg);
   font-family: system-ui, sans-serif;
@@ -41,7 +41,7 @@ html, body {
 body::-webkit-scrollbar { display: none; }
 
 #app {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   padding: 12px 20px;
@@ -55,9 +55,73 @@ body::-webkit-scrollbar { display: none; }
 }
 
 #controls-top {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 12px;
+}
+
+#controls-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#title-block {
+  text-align: center;
+}
+
+#controls-right {
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+}
+
+#info-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+#info-btn:hover { border-color: var(--fg); color: var(--fg); }
+
+#info-popover[hidden] { display: none; }
+
+#info-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: min(360px, 90vw);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(var(--border-rgb), 0.35);
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  z-index: 100;
+}
+
+#info-popover a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+#info-popover strong { font-weight: 600; }
+
+.info-meta {
+  font-size: 11px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 2px;
 }
 
 #controls-slider {
@@ -75,9 +139,16 @@ body::-webkit-scrollbar { display: none; }
 
 #brand {
   font-weight: 700;
-  font-size: 15px;
+  font-size: 16px;
   letter-spacing: -0.01em;
   color: var(--fg);
+  line-height: 1.2;
+}
+
+#subtitle {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
 }
 
 .legend {
@@ -114,11 +185,15 @@ select { cursor: pointer; }
 
 #chart-area {
   flex: 1;
-  min-height: 0;
+  min-height: 280px;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 #llm-cost {
   height: 100%;
+  min-height: 280px;
+  min-width: 360px;
 }
 
 #llm-cost > svg {

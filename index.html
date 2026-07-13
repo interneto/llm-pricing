@@ -15,13 +15,29 @@
   <div id="app">
     <div id="controls">
       <div id="controls-top">
-        <select id="quality">
-          <option value="overall">Overall</option>
-          <option value="coding">Coding</option>
-          <option value="hard">Hard</option>
-        </select>
-        <input id="model" placeholder="Filter">
-        <span id="brand">LLM Pricing</span>
+        <div id="controls-left">
+          <select id="quality">
+            <option value="overall">Overall</option>
+            <option value="coding">Coding</option>
+            <option value="hard">Hard</option>
+          </select>
+          <input id="model" placeholder="Filter">
+        </div>
+        <div id="title-block">
+          <h1 id="brand">LLM Pricing</h1>
+          <p id="subtitle">Which LLMs are the best value for money?</p>
+        </div>
+        <div id="controls-right">
+          <button id="info-btn" title="About this chart">?</button>
+          <div id="info-popover" hidden>
+            <p>The cost of LLMs is steadily falling, and the quality is rising.</p>
+            <p>A rough estimate of the <strong>cost of an LLM</strong> is the cost per million tokens of input, mostly from <a href="https://llmpricecheck.com/" target="_blank">LLMPriceCheck</a>. (Typically, inputs are the bigger component of the cost, compared to outputs.)</p>
+            <p>A rough estimate of the <strong>quality of an LLM</strong> is the ELO score on the <a href="https://lmarena.ai/" target="_blank">LMSYS Leaderboard</a>. (This is like the chess ELO score, but for LLMs, where people compare 2 LLMs on the same task.)</p>
+            <p>Some LLMs are "pareto optimal" — no other LLM is better in both cost and quality. These are shown in 🟢 green and are the best to use.</p>
+            <p>Some LLMs are "pareto suboptimal" — no other LLM is worse in both cost and quality. These are shown in 🔴 red and are the ones to avoid.</p>
+            <p class="info-meta">Last updated: <strong>12 Jul 2026</strong> · Alternatives: <a href="https://artificialanalysis.ai/" target="_blank">ArtificialAnalysis.ai</a></p>
+          </div>
+        </div>
       </div>
       <div id="controls-slider">
         <label id="date-label" for="date">Month</label>
