@@ -24,7 +24,7 @@ let scrollyHighlights = new Set();
 let scrollyActive = false;
 
 const $chartArea = document.querySelector("#chart-area");
-const MIN_CHART_WIDTH = 1000; // preserves original label spacing; narrower viewports scroll horizontally
+const MIN_CHART_WIDTH = 500;
 
 const dates = Array.from(new Set(models.map((d) => d.launch))).sort();
 const $date = document.querySelector("#date");
@@ -63,12 +63,15 @@ const renderPlot = (filteredModels) => {
   const highlighted = (d) => scrollyHighlights.has(d.model);
   const dimmed = (d) => scrollyActive && scrollyHighlights.size > 0 && !highlighted(d);
 
+  const w = Math.max($chartArea.clientWidth, MIN_CHART_WIDTH);
+  const h = Math.max($chartArea.clientHeight, 400);
+
   const plot = Plot.plot({
     marginLeft: 50,
     x: { type: "log", grid: true, domain: xScale.domain() },
     y: { grid: true, domain: yScale.domain() },
-    width: 1000,
-    height: 500,
+    width: w,
+    height: h,
     marks: [
       Plot.ruleY(eloAnnotations, {
         y: "elo",
@@ -158,6 +161,7 @@ const update = () => {
 $date.addEventListener("input", update);
 document.querySelector("#model").addEventListener("input", update);
 update();
+new ResizeObserver(update).observe($chartArea);
 
 // ── Scrollytelling ──────────────────────────────────────────────────────────
 
