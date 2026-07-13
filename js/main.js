@@ -23,6 +23,9 @@ const models = data
 let scrollyHighlights = new Set();
 let scrollyActive = false;
 
+const $chartArea = document.querySelector("#chart-area");
+const MIN_CHART_WIDTH = 1000; // preserves original label spacing; narrower viewports scroll horizontally
+
 const dates = Array.from(new Set(models.map((d) => d.launch))).sort();
 const $date = document.querySelector("#date");
 $date.setAttribute("max", dates.length - 1);

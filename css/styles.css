@@ -41,17 +41,17 @@ html, body {
 body::-webkit-scrollbar { display: none; }
 
 #app {
-  min-height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding: 12px 20px;
+  padding: 10px 16px;
 }
 
 #controls {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 #controls-top {
@@ -67,8 +67,44 @@ body::-webkit-scrollbar { display: none; }
   gap: 8px;
 }
 
+#title-row {
+  display: contents; /* transparent on desktop — children slot into the grid normally */
+}
+
 #title-block {
   text-align: center;
+}
+
+/* ── Mobile: stack into rows ── */
+@media (max-width: 540px) {
+  #app { padding: 10px 12px; }
+
+  #controls { gap: 6px; margin-bottom: 8px; }
+
+  #controls-top {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* title + ? on same row */
+  #title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  #title-block { text-align: left; }
+
+  /* select + filter full width */
+  #controls-left {
+    width: 100%;
+    gap: 8px;
+  }
+
+  #controls-left select { flex: 1; }
+  #controls-left #model  { flex: 2; width: auto; }
 }
 
 #controls-right {
@@ -185,15 +221,24 @@ select { cursor: pointer; }
 
 #chart-area {
   flex: 1;
-  min-height: 280px;
+  min-height: 400px;
   overflow-x: auto;
   overflow-y: hidden;
 }
 
 #llm-cost {
   height: 100%;
-  min-height: 280px;
+  min-height: 400px;
   min-width: 360px;
+}
+
+@media (max-width: 540px) {
+  #chart-area {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  #chart-area::-webkit-scrollbar { height: 4px; }
+  #chart-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 }
 
 #llm-cost > svg {
