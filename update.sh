@@ -12,7 +12,11 @@ run_update() {
   local output="$tmpdir/${column}.txt"
 
   echo "Downloading ${column} leaderboard from ${url}" >&2
-  uv run download.py "$url" "$output" --browser auto --format json
+  local browser_args=(--browser auto --format json)
+  if [[ -n "${LLMPRICING_CHROMIUM:-}" ]]; then
+    browser_args+=(--executable "$LLMPRICING_CHROMIUM")
+  fi
+  uv run download.py "$url" "$output" "${browser_args[@]}"
 
   echo "Updating elo.csv column ${column}" >&2
   uv run scripts/update_elo.py "$output" --elo data/elo.csv --column "$column"

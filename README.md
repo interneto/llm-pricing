@@ -77,8 +77,10 @@ uv run download.py URL output.tsv --browser launch
 ```
 
 Set `LLMPRICING_CHROMIUM` or pass `--executable` when Playwright cannot find
-your Chrome/Chromium installation automatically. Install the browser runtime
-once with:
+your Chrome/Chromium installation automatically. On Windows, the downloader
+also checks `C:\Users\<user>\AppData\Local\Chromium\Application\chrome.exe`.
+Install the Playwright browser runtime only if you do not want to use an
+existing Chrome/Chromium installation:
 
 ```bash
 uv run playwright install chromium

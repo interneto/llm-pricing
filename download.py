@@ -62,6 +62,22 @@ def describe() -> None:
     )
 
 
+def default_executable() -> str | None:
+    """Find a locally installed Chrome/Chromium executable."""
+
+    configured = os.environ.get("LLMPRICING_CHROMIUM")
+    candidates = [configured] if configured else []
+    candidates.extend(
+        [
+            shutil.which("chrome"),
+            shutil.which("chromium"),
+            os.path.expandvars(r"%LOCALAPPDATA%\Chromium\Application\chrome.exe"),
+            os.path.expandvars(r"%PROGRAMFILES%\Google\Chrome\Application\chrome.exe"),
+        ]
+    )
+    return next((candidate for candidate in candidates if candidate and Path(candidate).is_file()), None)
+
+
 def write_leaderboard(
     *,
     url: str,
@@ -163,7 +179,7 @@ def main(
         typer.echo(f"Error: executable does not exist: {executable}", err=True)
         raise typer.Exit(code=2)
     if executable is None:
-        executable = os.environ.get("LLMPRICING_CHROMIUM") or shutil.which("chrome") or shutil.which("chromium")
+        executable = default_executable()
 
     try:
         summary = write_leaderboard(
