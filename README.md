@@ -18,7 +18,7 @@ These are shown in green 🟢 and are the best LLMs to use.
 Some LLMs are "pareto suboptimal", i.e. there is no LLM worse in both cost and quality.
 These are shown in red 🔴 and are the LLMs to avoid.
 
-Last updated: **24 Jun 2026**
+Last updated: **26 Jul 2026**
 
 Alternatives: [ArtificialAnalysis.ai](https://artificialanalysis.ai/)
 
@@ -53,7 +53,7 @@ Use `--column hard` for `/hard-prompts` and `--column coding` for `/coding`.
 ```js
 $$("table tr").map(d => {
   const cells = d.querySelectorAll("td, th");
-  const [model, score] = [cells[2].querySelector("a")?.innerText ?? cells[2].innerText, cells[3].innerText.split(/\s/)[0]];
+  const [model, score] = [(cells[2].querySelector("a")?.innerText ?? cells[2].innerText).split(/\n/)[0], cells[3].innerText.split(/\s/)[0]];
   return `${model}\t${score}`;
 }).join("\n");
 ```
@@ -68,5 +68,19 @@ update flow.
 
 Blog post: https://www.s-anand.net/blog/wage-rates-of-nations-and-llms/
 ChatGPT analysis: https://chatgpt.com/share/68317a06-0cac-800c-ad6f-13646ceb489f
+
+# Screenshots
+
+Create or update screenshots of the charts with:
+
+```bash
+uv run screenshots.py --model gpt,gemini,claude [--force]
+```
+
+Create videos with:
+
+```bash
+ffmpeg -framerate 2 -i screenshots/gpt-%03d.png -c:v libvpx-vp9 -pix_fmt yuva420p screenshots/gpt.webm
+```
 
 -->
