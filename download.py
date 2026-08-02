@@ -9,10 +9,13 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import sys
 from pathlib import Path
 from typing import Annotated
 
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 import typer
@@ -20,7 +23,7 @@ import typer
 app = typer.Typer(add_completion=False, no_args_is_help=True)
 
 EXTRACT_SCRIPT = r"""
-$$("table tr").map(d => {
+Array.from(document.querySelectorAll("table tr")).map(d => {
   const cells = d.querySelectorAll("td, th");
   const [model, score] = [(cells[2].querySelector("a")?.innerText ?? cells[2].innerText).split(/\n/)[0], cells[3].innerText.split(/\s/)[0]];
   return `${model}\t${score}`;
@@ -34,13 +37,15 @@ def describe() -> None:
     typer.echo(
         json.dumps(
             {
-                "description": "Download an LMArena leaderboard TSV via CDP localhost:9222.",
+                "description": "Download an LMArena leaderboard TSV with Playwright.",
                 "arguments": {
                     "url": "Leaderboard URL to visit.",
                     "output": "Path to write the TSV export.",
                 },
                 "options": {
-                    "--cdp": "CDP endpoint. Default: http://localhost:9222",
+                    "--browser": "Browser mode: auto, cdp, or launch. Default: auto.",
+                    "--cdp": "CDP endpoint used by cdp/auto mode. Default: http://localhost:9222",
+                    "--executable": "Optional Chrome/Chromium executable for launch mode.",
                     "--timeout": "Navigation and table wait timeout in milliseconds.",
                     "--format": "Use json for structured output or text for a plain summary.",
                     "--describe": "Print this schema and exit.",
@@ -62,12 +67,27 @@ def write_leaderboard(
     url: str,
     output: Path,
     cdp: str,
+    browser_mode: str,
+    executable: str | None,
     timeout: int,
 ) -> dict[str, str | int]:
-    """Visit a leaderboard page and save the browser-console extraction result."""
+    """Visit a leaderboard page and save the extracted leaderboard."""
 
+    browser = None
+    owns_browser = False
     with sync_playwright() as p:
-        browser = p.chromium.connect_over_cdp(cdp, timeout=timeout)
+        if browser_mode in {"auto", "cdp"}:
+            try:
+                browser = p.chromium.connect_over_cdp(cdp, timeout=timeout)
+            except PlaywrightError:
+                if browser_mode == "cdp":
+                    raise
+        if browser is None:
+            launch_args = {"headless": True}
+            if executable:
+                launch_args["executable_path"] = executable
+            browser = p.chromium.launch(**launch_args)
+            owns_browser = True
         context = browser.contexts[0] if browser.contexts else browser.new_context()
         page = context.new_page()
         try:
@@ -77,24 +97,12 @@ def write_leaderboard(
                 "() => [...document.querySelectorAll('table tr')].some(row => row.querySelectorAll('td, th').length >= 4)",
                 timeout=timeout,
             )
-            session = context.new_cdp_session(page)
-            result = session.send(
-                "Runtime.evaluate",
-                {
-                    "expression": EXTRACT_SCRIPT,
-                    "awaitPromise": True,
-                    "includeCommandLineAPI": True,
-                    "returnByValue": True,
-                },
-            )
+            value = page.evaluate(EXTRACT_SCRIPT)
         finally:
             page.close()
+            if owns_browser:
+                browser.close()
 
-    if exception := result.get("exceptionDetails"):
-        text = exception.get("text", "CDP evaluation failed")
-        raise RuntimeError(text)
-
-    value = result.get("result", {}).get("value")
     if not isinstance(value, str) or not value.strip():
         raise RuntimeError("The leaderboard extraction returned no text.")
 
@@ -116,6 +124,14 @@ def main(
         typer.Argument(help="Path where the TSV export should be written."),
     ] = None,
     cdp: Annotated[str, typer.Option("--cdp", help="CDP endpoint.")] = "http://localhost:9222",
+    browser_mode: Annotated[
+        str,
+        typer.Option("--browser", help="Browser mode: auto, cdp, or launch."),
+    ] = "auto",
+    executable: Annotated[
+        str | None,
+        typer.Option("--executable", help="Chrome/Chromium executable for launch mode."),
+    ] = None,
     timeout: Annotated[
         int,
         typer.Option("--timeout", min=1000, help="Timeout in milliseconds."),
@@ -140,10 +156,25 @@ def main(
     if output_format not in {"json", "text"}:
         typer.echo("Error: --format must be json or text.", err=True)
         raise typer.Exit(code=2)
+    if browser_mode not in {"auto", "cdp", "launch"}:
+        typer.echo("Error: --browser must be auto, cdp, or launch.", err=True)
+        raise typer.Exit(code=2)
+    if executable and not Path(executable).is_file():
+        typer.echo(f"Error: executable does not exist: {executable}", err=True)
+        raise typer.Exit(code=2)
+    if executable is None:
+        executable = os.environ.get("LLMPRICING_CHROMIUM") or shutil.which("chrome") or shutil.which("chromium")
 
     try:
-        summary = write_leaderboard(url=url, output=output, cdp=cdp, timeout=timeout)
-    except PlaywrightTimeoutError as exc:
+        summary = write_leaderboard(
+            url=url,
+            output=output,
+            cdp=cdp,
+            browser_mode=browser_mode,
+            executable=executable,
+            timeout=timeout,
+        )
+    except (PlaywrightTimeoutError, PlaywrightError) as exc:
         typer.echo(f"Error: timed out while loading {url}: {exc}", err=True)
         raise typer.Exit(code=1) from exc
     except Exception as exc:

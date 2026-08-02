@@ -12,10 +12,10 @@ run_update() {
   local output="$tmpdir/${column}.txt"
 
   echo "Downloading ${column} leaderboard from ${url}" >&2
-  uv run download.py "$url" "$output" --format json
+  uv run download.py "$url" "$output" --browser auto --format json
 
   echo "Updating elo.csv column ${column}" >&2
-  uv run update_elo.py "$output" --column "$column"
+  uv run scripts/update_elo.py "$output" --elo data/elo.csv --column "$column"
 }
 
 run_update "https://lmarena.ai/leaderboard/text" "overall"

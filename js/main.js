@@ -115,6 +115,7 @@ const renderPlot = (filteredModels) => {
             fillOpacity: false,
             strokeOpacity: false,
             strokeWidth: false,
+            model: (d) => d,
             x: (d) => `$${num(d)} / MTok`,
             y: (d) => num0(d),
           },

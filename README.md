@@ -1,6 +1,12 @@
 # LLM Pricing
 
-The cost of LLMs is steadily falling, and the quality is rising.
+**Compare the cost and quality of large language models.**
+
+🌐 **[Open the live chart](https://interneto.github.io/llm-pricing/)**
+
+The cost of LLMs is steadily falling while their quality improves. This project
+puts both dimensions on one chart so that useful, affordable models are easier
+to find.
 
 A rough estimate of the **cost of an LLM** is
 the cost per million tokens of input, mostly from [LLMPriceCheck](https://llmpricecheck.com/).
@@ -10,7 +16,15 @@ A rough estimate of the **quality of an LLM** is
 the ELO score on the [LMSYS Leaderboard](https://lmarena.ai/).
 (This is like the chess ELO score, but for LLMs, where people compare 2 LLMs on the same task.)
 
-This chart shows the cost and quality of each LLM.
+The chart combines:
+
+- **Cost:** input price per million tokens (CPMI), primarily from
+  [LLMPriceCheck](https://llmpricecheck.com/).
+- **Quality:** ELO scores from the [LMSYS / LMArena leaderboard](https://lmarena.ai/).
+
+Use the **Overall**, **Coding**, and **Hard** views to compare different quality
+scores. Search by model name or move the month slider to explore how the market
+has changed over time.
 
 Some LLMs are "pareto optimal", i.e. there is no LLM better in both cost and quality.
 These are shown in green 🟢 and are the best LLMs to use.
@@ -20,67 +34,99 @@ These are shown in red 🔴 and are the LLMs to avoid.
 
 Last updated: **26 Jul 2026**
 
-Alternatives: [ArtificialAnalysis.ai](https://artificialanalysis.ai/)
+Related sources: [LiveBench](https://livebench.ai/) · [Artificial Analysis models](https://artificialanalysis.ai/models)
 
-<!--
+## Understanding the chart
 
-# How to update
+Models in the green 🟢 **Pareto-optimal** set are not beaten by another model
+on both price and quality. They are strong value choices.
 
-Start a browser with Chrome DevTools Protocol available at `localhost:9222`, then run:
+Models in the red 🔴 **Pareto-suboptimal** set are beaten by another model on
+both dimensions and may be worth avoiding.
+
+The chart is a rough comparison, not a recommendation. Prices, availability,
+context limits, latency, and task-specific performance can change the result.
+
+## Updating the data
+
+### Prerequisites
+
+- [uv](https://docs.astral.sh/uv/) for running the Python scripts
+- Playwright, which can either connect to Chrome/Chromium through the DevTools
+  Protocol on `localhost:9222` or launch its own browser
+
+Run the update script. By default, `download.py` first tries to connect to
+Chrome at `localhost:9222`; if no CDP browser is available, it automatically
+launches a headless browser through Playwright:
 
 ```bash
 ./update.sh
 ```
 
-This downloads all three LMArena leaderboards to temporary TSV files and updates `elo.csv`:
+The script downloads the Overall, Hard, and Coding LMArena leaderboards to
+temporary files and updates the corresponding columns in `data/elo.csv`.
 
-- https://lmarena.ai/leaderboard/text
-- https://lmarena.ai/leaderboard/text/hard-prompts
-- https://lmarena.ai/leaderboard/text/coding
+To force a specific browser mode for one leaderboard:
 
-For a single leaderboard, run:
+```bash
+# Use an existing Chrome DevTools Protocol session
+uv run download.py URL output.tsv --browser cdp
+
+# Launch Chrome/Chromium with Playwright
+uv run download.py URL output.tsv --browser launch
+```
+
+Set `LLMPRICING_CHROMIUM` or pass `--executable` when Playwright cannot find
+your Chrome/Chromium installation automatically. Install the browser runtime
+once with:
+
+```bash
+uv run playwright install chromium
+```
+
+To update one leaderboard manually:
 
 ```bash
 uv run download.py https://lmarena.ai/leaderboard/text file.txt
-uv run update_elo.py file.txt --column overall
+uv run scripts/update_elo.py file.txt --elo data/elo.csv --column overall
 ```
 
-Use `--column hard` for `/hard-prompts` and `--column coding` for `/coding`.
-`download.py --describe` prints the machine-readable CLI contract.
+Use the following URL and column for the other leaderboards:
 
-`download.py` evaluates this script in the page via CDP:
+| Leaderboard | URL path | Column |
+| --- | --- | --- |
+| Overall | `/leaderboard/text` | `overall` |
+| Hard | `/leaderboard/text/hard-prompts` | `hard` |
+| Coding | `/leaderboard/text/coding` | `coding` |
 
-```js
-$$("table tr").map(d => {
-  const cells = d.querySelectorAll("td, th");
-  const [model, score] = [(cells[2].querySelector("a")?.innerText ?? cells[2].innerText).split(/\n/)[0], cells[3].innerText.split(/\s/)[0]];
-  return `${model}\t${score}`;
-}).join("\n");
-```
+`download.py --describe` prints the machine-readable command contract.
 
-# Billing rates
+### Updating screenshots
 
-`billing.py` was created in May 2025 to estimate per-hour output "billing rates" in
-`billing.json` from OpenRouter completion pricing and throughput stats. It worked when
-it was created, but the OpenRouter frontend endpoints it used no longer work with the
-script as written. It is kept as historical context and is not part of the `elo.csv`
-update flow.
-
-Blog post: https://www.s-anand.net/blog/wage-rates-of-nations-and-llms/
-ChatGPT analysis: https://chatgpt.com/share/68317a06-0cac-800c-ad6f-13646ceb489f
-
-# Screenshots
-
-Create or update screenshots of the charts with:
+Capture chart screenshots with `screenshot.py`:
 
 ```bash
-uv run screenshots.py --model gpt,gemini,claude [--force]
+uv run screenshot.py --model gpt,gemini,claude [--force]
 ```
 
-Create videos with:
+Use `--dry-run` to preview the files that would be created. The default output
+directory is `screenshots/`. To create a video from a captured sequence:
 
 ```bash
-ffmpeg -framerate 2 -i screenshots/gpt-%03d.png -c:v libvpx-vp9 -pix_fmt yuva420p screenshots/gpt.webm
+ffmpeg -framerate 2 -i screenshots/gpt-%03d.png \
+  -c:v libvpx-vp9 -pix_fmt yuva420p screenshots/gpt.webm
 ```
 
--->
+## Repository layout
+
+| Path | Purpose |
+| --- | --- |
+| `index.html` | Main pricing chart page |
+| `intelligence.html` | Intelligence comparison page |
+| `js/main.js` | Chart rendering, filtering, tooltips, and interactions |
+| `data/elo.csv` | Historical model quality and pricing data |
+| `data/narrative.json` | Scrollytelling chart content |
+| `download.py` | Extracts leaderboard data through Chrome DevTools Protocol |
+| `scripts/update_elo.py` | Merges leaderboard results into the CSV |
+| `screenshot.py` | Captures chart screenshots with Playwright |
+| `update.sh` | Updates all three leaderboard views |
